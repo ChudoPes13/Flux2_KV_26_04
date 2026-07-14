@@ -4,6 +4,8 @@
 
 Проект запускает FLUX.2 Klein 9B-KV NVFP4 на **Ubuntu 26.04 + CUDA 13.2 + Blackwell/RTX 50XX + Python 3.13** через TensorRT-LLM. Каноническая документация: [README](README.md), [архитектура](architecture.md), [правила](rules.md), [план](plan.md) и [журнал](changelog.md).
 
+Рабочая GPU-машина: `192.168.0.206`, пользователь `master`, Ubuntu 26.04, RTX 5060 Ti (Blackwell, CC 12.0), 16 GiB VRAM, driver 595.71.05 и CUDA runtime 13.2. Пароли, HF tokens, SSH host keys и иные секреты не записывай в Git, конфиги или диагностику. Перед любой GPU-работой повторно проверь фактический `nvidia-smi` и импорт PyTorch/TensorRT-LLM.
+
 ## Порядок работы
 
 1. Прочитай `README.md`, `architecture.md`, `rules.md`, `plan.md` и актуальный `changelog.md`.
@@ -19,6 +21,9 @@
 - Только native Ubuntu; Docker запрещён.
 - Целевой стек: Ubuntu 26.04, CUDA 13.2, Blackwell/RTX 50XX, Python 3.13, PyTorch cu132.
 - PyTorch устанавливается командой `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`.
+- Каждый transformer inference использует GPU 0; `batch_size=1`. Не запускай одновременно несколько model variants на 16 GiB VRAM.
+- Предпочтительный вариант — ApacheOne `full` NVFP4. `txtattn_bf16` — отдельная диагностическая проверка, а не бесшумная замена `full`.
+- CPU допустим только для файлового I/O, токенизации/метаданных и orchestration; нейросетевые вычисления и тензоры не должны переходить на CPU fallback.
 - Не добавляй Diffusers fallback, ComfyUI, Telegram, очереди или multi-worker.
 - Не запускай генерацию как acceptance на GPU старше Blackwell.
 - Не меняй TextEncoder cache, image preprocessing или runtime layout без новой подтверждённой причины.
