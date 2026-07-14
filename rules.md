@@ -29,6 +29,13 @@ main
 
 Проект работает только в native Ubuntu environment. Не добавляйте Dockerfile, docker-compose, container-specific scripts, `running_in_container` gates, container fallback или документацию, предлагающую Docker как путь исполнения.
 
+## Удалённая GPU-машина
+
+- GPU-работа выполняется на `192.168.0.206` под пользователем `master`; локальная Windows-машина служит только клиентом управления и Git-копией.
+- Не записывайте в Git или PR SSH-пароли, токены Hugging Face, host keys, команды с секретами и приватные данные пользователя.
+- Перед GPU-спринтом документируйте в diagnostic JSON фактические GPU, driver, CUDA и доступную VRAM. Не считайте прошлый замер вечным.
+- Не меняйте системные драйверы, CUDA Toolkit или пакеты ОС в том же спринте, где меняется модельный loader или generation logic.
+
 ## Требования к качеству
 
 - Никаких silent fallbacks и swallowed exceptions.

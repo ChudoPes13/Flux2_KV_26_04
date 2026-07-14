@@ -24,6 +24,33 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu13
 
 TensorRT и TensorRT-LLM не фиксируются произвольными версиями: они должны устанавливаться по актуальной официальной инструкции NVIDIA именно для CUDA 13.2, версии драйвера и Blackwell. Любой environment gate фиксирует реальные версии и пути библиотек.
 
+## Подтверждённая удалённая машина
+
+| Поле | Фактическое значение на 2026-07-14 |
+| --- | --- |
+| Host | `192.168.0.206` (пользователь `master`) |
+| ОС | Ubuntu 26.04 LTS, kernel 7.0.0-27-generic |
+| GPU | NVIDIA GeForce RTX 5060 Ti |
+| Compute capability | 12.0 (Blackwell) |
+| VRAM | 16 311 MiB, свободно 15 814 MiB на момент проверки |
+| Driver / CUDA runtime | 595.71.05 / 13.2 |
+| RAM / свободный диск `$HOME` | 60 GiB / 75 GiB |
+| Текущее ПО | Python 3.14.4; отсутствуют Python 3.13, `nvcc`, PyTorch, TensorRT и TensorRT-LLM |
+
+GPU подходит для NVFP4 acceptance по архитектуре. Однако наличие CUDA runtime в `nvidia-smi` не заменяет CUDA Toolkit: для native TensorRT-LLM нужен отдельный проверяемый путь установки с `nvcc`, `CUDA_HOME` и совместимыми библиотеками. Не считать машину готовой до успешного environment gate.
+
+## GPU-first и точность
+
+`full` ApacheOne NVFP4 checkpoint — первичный вариант. NVFP4 применяется к transformer ровно в той форме, в которой опубликован checkpoint; проект не делает самодельную переквантизацию до прохождения load-tests. VAE, токенизатор и другие companion-компоненты используют точность, требуемую их реализацией: нельзя принудительно объявлять их NVFP4, если runtime этого не поддерживает.
+
+Все нейросетевые расчёты — encoding, transformer/denoising, VAE decode и tensor transforms — выполняются на GPU 0. CPU разрешён лишь для I/O, YAML/JSON, safetensors-header inspection и orchestration. На 16 GiB VRAM применяются `batch_size=1`, последовательные варианты модели и освобождение памяти между проверками; нет CPU fallback, параллельных генераций или скрытого изменения precision.
+
+## Совместимость native TensorRT-LLM
+
+Проект закрепляет PyTorch cu132, но не предполагает, что любой текущий TensorRT-LLM wheel совместим с ним. Официальный pip-гайд TensorRT-LLM на дату проверки указывает tested путь CUDA 13.1/PyTorch cu130 и Python 3.12, поэтому до установки фиксируются resolver output и импортный smoke-test. Если wheel пытается заменить PyTorch cu132 или импорт не проходит, это `environment compatibility` blocker: не понижать CUDA/PyTorch и не использовать Docker; решение о сборке TensorRT-LLM из исходников для cu132 принимается отдельным спринтом.
+
+Детальная процедура приведена в [workflow.md](workflow.md).
+
 ## Логическая схема
 
 ```mermaid
