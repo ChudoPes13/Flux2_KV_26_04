@@ -1,0 +1,38 @@
+project:
+  name: flux2-kv
+  os: ubuntu
+  native_runtime: true
+
+platform:
+  ubuntu_version: "26.04"
+  cuda_version: "13.2"
+  python_version: "3.13"
+  minimum_gpu_architecture: blackwell
+
+models:
+  base_repo: black-forest-labs/FLUX.2-klein-9b-kv
+  apacheone_repo: ApacheOne/FLUX.2-klein-9b-kv-nvfp4_mixed
+  apacheone_dir: models/apacheone
+  bfl_dir: models/bfl
+  experimental_dir: models/experimental
+
+checkpoints:
+  full: models/apacheone/flux2-klein-9b-kv-nvfp4.safetensors
+  txtattn_bf16: models/apacheone/flux2-klein-9b-kv-nvfp4_txtattnBF16.safetensors
+
+generation:
+  width: 1024
+  height: 1024
+  logo_width: 512
+  logo_height: 512
+  steps: 4
+  seed: 42
+  batch_size: 1
+  guidance_scale: 4.0
+
+runtime:
+  prefer_tensorrt: true
+  prefer_visualgen: true
+  allow_docker: false
+  allow_diffusers_fallback: false
+  allow_prompt_text_in_generation: false
