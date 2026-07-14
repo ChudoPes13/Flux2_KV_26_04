@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Models, local input and generated artifacts
+models/*
+!models/.gitkeep
+data/input/*
+!data/input/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+data/diagnostics/*
+!data/diagnostics/.gitkeep
+data/output/*
+!data/output/.gitkeep
+
+# IDE and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
