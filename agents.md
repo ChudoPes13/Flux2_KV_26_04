@@ -2,7 +2,7 @@
 
 ## Контекст
 
-Проект запускает FLUX.2 Klein 9B-KV NVFP4 на **Ubuntu 26.04 + CUDA 13.2 + Blackwell/RTX 50XX + Python 3.12** через TensorRT-LLM. Каноническая документация: [README](README.md), [архитектура](architecture.md), [правила](rules.md), [план](plan.md) и [журнал](changelog.md).
+Проект запускает FLUX.2 Klein 9B-KV NVFP4 на **Ubuntu 26.04 + CUDA 13.2 + Blackwell/RTX 50XX + Python 3.14** через TensorRT-LLM. Каноническая документация: [README](README.md), [архитектура](architecture.md), [правила](rules.md), [план](plan.md) и [журнал](changelog.md).
 
 Рабочая GPU-машина: `192.168.0.206`, пользователь `master`, Ubuntu 26.04, RTX 5060 Ti (Blackwell, CC 12.0), 16 GiB VRAM, driver 595.71.05 и CUDA runtime/toolkit 13.2. Пароли, HF tokens, SSH host keys и иные секреты не записывай в Git, конфиги или диагностику. Перед любой GPU-работой повторно проверь фактический `nvidia-smi` и импорт PyTorch/TensorRT-LLM.
 
@@ -19,7 +19,8 @@
 ## Неподвижные требования
 
 - Только native Ubuntu; Docker запрещён.
-- Целевой стек: Ubuntu 26.04, CUDA Toolkit 13.2, Blackwell/RTX 50XX, Python 3.12, PyTorch cu132.
+- Целевой стек: Ubuntu 26.04, CUDA Toolkit 13.2, Blackwell/RTX 50XX, Python 3.14, PyTorch cu132.
+- Используются ровно два Python-окружения: `.venv` для TensorRT-LLM runtime и `.venv-modelopt` для NVIDIA ModelOpt/Hugging Face CLI. Не смешивайте их пакеты.
 - PyTorch устанавливается командой `pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132`.
 - Не устанавливай CUDA 13.3 и не разрешай pip заменить `torch 2.13.0+cu132` ради TensorRT-LLM. При несовместимости pre-built wheel остановись до загрузки моделей и сохрани environment report.
 - Каждый transformer inference использует GPU 0; `batch_size=1`. Не запускай одновременно несколько model variants на 16 GiB VRAM.

@@ -42,6 +42,13 @@ python scripts/00_ubuntu_check.py --output data/diagnostics/ubuntu_env_check.jso
 
 `activate_remote.sh` ожидает созданный Python-3.14 venv. В нём PyTorch всегда ставится только командой `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132`; CUDA 13.3 не используется. Подробные требования и проверки — в [INSTALLATION.md](INSTALLATION.md) и [run.md](run.md).
 
+## Два изолированных Python-окружения
+
+- `.venv` — единственное runtime-окружение TensorRT, TensorRT-LLM, VisualGen, NIXL и UCX; активируется `source scripts/activate_remote.sh`.
+- `.venv-modelopt` — отдельное окружение NVIDIA ModelOpt и Hugging Face CLI; активируется `source scripts/activate_modelopt_remote.sh`.
+
+Оба окружения используют Python 3.14. Нельзя устанавливать ModelOpt-зависимости, `wget` или Hugging Face CLI в `.venv` ради удобства: это меняет проверенный TensorRT-LLM runtime.
+
 ## Рабочая машина
 
 Все GPU-задачи выполняются на удалённой Ubuntu-машине `192.168.0.206` под пользователем `master`. На момент environment gate это Ubuntu 26.04 LTS с NVIDIA GeForce RTX 5060 Ti (Blackwell, compute capability 12.0), 16 GiB VRAM, драйвером 595.71.05 и CUDA runtime/toolkit 13.2. Секреты доступа, токены и приватные пути в репозиторий не записываются.

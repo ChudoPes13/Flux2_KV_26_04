@@ -6,7 +6,7 @@ project:
 platform:
   ubuntu_version: "26.04"
   cuda_version: "13.2"
-  python_version: "3.13"
+  python_version: "3.14"
   minimum_gpu_architecture: blackwell
 
 models:
