@@ -11,7 +11,7 @@
 | ОС | Ubuntu 26.04 LTS, native runtime |
 | GPU | NVIDIA Blackwell / GeForce RTX 50XX или новее |
 | CUDA | 13.2 |
-| Python | 3.12 |
+| Python | 3.14 |
 | PyTorch | CUDA 13.2 wheels |
 | Inference runtime | TensorRT + TensorRT-LLM, нативно установленный и совместимый с GPU/драйвером |
 | Контейнеры | Не используются |
@@ -26,7 +26,7 @@ TensorRT и TensorRT-LLM не фиксируются произвольными 
 
 ## Подтверждённая удалённая машина
 
-| Поле | Фактическое значение на 2026-07-14 |
+| Поле | Фактическое значение на 2026-07-15 |
 | --- | --- |
 | Host | `192.168.0.206` (пользователь `master`) |
 | ОС | Ubuntu 26.04 LTS, kernel 7.0.0-27-generic |
@@ -34,14 +34,14 @@ TensorRT и TensorRT-LLM не фиксируются произвольными 
 | Compute capability | 12.0 (Blackwell) |
 | VRAM | 16 311 MiB, свободно 15 814 MiB на момент проверки |
 | Driver / CUDA runtime | 595.71.05 / 13.2 |
-| RAM / свободный диск `$HOME` | 60 GiB / 75 GiB |
-| Project Python | 3.12.13, user-local installation; `.venv` использует этот interpreter |
+| RAM / свободный диск `$HOME` | 60 GiB / 811 GiB после online LVM expansion |
+| Project Python | 3.14.4; `.venv` и `.venv-modelopt` используют этот interpreter |
 | CUDA Toolkit | 13.2.78 (`/usr/local/cuda-13.2`, `nvcc` доступен) |
 | PyTorch | 2.13.0+cu132, `torch.version.cuda == 13.2`, GPU available |
 | TensorRT | 11.1.0.106, Python import проходит |
-| TensorRT-LLM / VisualGen | Не установлены: официальный pre-built wheel 1.2.1 конфликтует с обязательным PyTorch |
+| TensorRT-LLM / VisualGen | Source-build `1.3.0rc20`; import и runtime smoke-test проходят |
 
-GPU подходит для NVFP4 acceptance по архитектуре. Однако наличие CUDA runtime в `nvidia-smi` не заменяет CUDA Toolkit: для native TensorRT-LLM нужен отдельный проверяемый путь установки с `nvcc`, `CUDA_HOME` и совместимыми библиотеками. Не считать машину готовой до успешного environment gate.
+GPU подходит для NVFP4 compatibility-диагностики. CUDA Toolkit, `CUDA_HOME`, TensorRT-LLM, VisualGen, NIXL и UCX проверены environment gate. Официальный BFL FLUX.2 Klein 9B-KV указывает около 29 GiB VRAM, поэтому на 16 GiB GPU его стандартный путь не является гарантированным acceptance; ApacheOne NVFP4 проверяется раздельно и без CPU fallback.
 
 ## GPU-first и точность
 
@@ -51,9 +51,9 @@ GPU подходит для NVFP4 acceptance по архитектуре. Одн
 
 ## Совместимость native TensorRT-LLM
 
-Python 3.12 выбран специально потому, что pre-built TensorRT-LLM wheel имеет вариант `cp312`. Однако этого недостаточно: resolver TensorRT-LLM 1.2.1 на 2026-07-15 зафиксировал зависимость `torch >=2.9.1, <=2.10.0a0`. Она не допускает обязательный `torch 2.13.0+cu132`. Кроме того, без constraint зависимость `cuda-python>=13` выбирает 13.3.1, что запрещено данным проектом; совместимый constraint `cuda-python==13.2.0` существует, но не устраняет torch-конфликт.
+Рабочий runtime — source-build TensorRT-LLM `v1.3.0rc20` под Python 3.14, CUDA Toolkit 13.2 и обязательный `torch 2.13.0+cu132`. Pre-built wheel не использовался, поскольку его metadata-конфликты с этим Torch не допускают resolver без downgrade. Main runtime находится только в `.venv` и активируется `scripts/activate_remote.sh`.
 
-Это `environment compatibility` blocker. Не понижать CUDA/PyTorch, не ставить CUDA 13.3, не использовать Docker и не загружать модели до снятия blocker. NVIDIA в актуальном pip-гайде также указывает pre-built путь с PyTorch 2.10.0 и CUDA 13.0, а не cu132. Разрешённые дальнейшие решения требуют отдельного одобрения: официальный wheel с поддержкой PyTorch cu132 либо отдельный source-build TensorRT-LLM под зафиксированный стек.
+NVIDIA ModelOpt изолирован в `.venv-modelopt` вместе с совместимым Transformers и Hugging Face CLI; этот venv активируется `scripts/activate_modelopt_remote.sh`. Минимальная compatibility-зависимость ModelOpt остаётся в `.venv`, поскольку RC20 выполняет eager import при импорте `tensorrt_llm`. Не обновляйте и не удаляйте её без полной повторной проверки TensorRT-LLM.
 
 Детальная процедура приведена в [workflow.md](workflow.md).
 

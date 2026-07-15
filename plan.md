@@ -13,16 +13,16 @@
 - Статус: `done`
 - Подтверждена целевая машина: Ubuntu 26.04 LTS, RTX 5060 Ti Blackwell (CC 12.0), 16 GiB VRAM, driver 595.71.05, CUDA runtime 13.2.
 - Зафиксирован GPU-first/NVFP4 процесс от input до отчёта в `workflow.md`.
-- Обнаружены baseline blockers: Python 3.13, CUDA Toolkit (`nvcc`), PyTorch, TensorRT и TensorRT-LLM ещё не установлены; системный Python — 3.14.4.
+- Первичный baseline зафиксирован до установки native runtime; исторические blockers устранены в Sprint 002.
 - Не включает: установку пакетов, загрузку весов или генерацию.
 
 ## Спринт 002 — Native Ubuntu environment gate
 
-- Статус: `blocked`
-- Добавлен `scripts/00_ubuntu_check.py`: он проверяет `/etc/os-release`, NVIDIA driver, CUDA Toolkit 13.2, Python 3.12, PyTorch cu132, TensorRT, TensorRT-LLM, GPU capability, VRAM и библиотечные пути; создаёт машиночитаемый JSON без Docker-проверок.
-- Подтверждены Python 3.12.13, CUDA Toolkit 13.2.78, PyTorch 2.13.0+cu132 с доступной RTX 5060 Ti и TensorRT 11.1.0.106.
-- Blocker: TensorRT-LLM 1.2.1 pre-built wheel для Python 3.12 требует `torch >=2.9.1, <=2.10.0a0`; это конфликтует с обязательным PyTorch cu132 версии 2.13.0. Constraint `cuda-python==13.2.0` не снимает torch-конфликт; CUDA 13.3, понижение PyTorch и source-build не разрешены.
-- Acceptance: отчёт правильно возвращает `blocked` и объясняет incompatibility; TensorRT-LLM VisualGen, Hugging Face login и модели не запускаются до внешнего решения.
+- Статус: `done`
+- Созданы два Python 3.14 окружения: `.venv` для TensorRT-LLM runtime и `.venv-modelopt` для NVIDIA ModelOpt/Hugging Face CLI.
+- В `.venv` проверены CUDA Toolkit 13.2.78, `torch 2.13.0+cu132`, TensorRT Python 11.1.0.106, source-build TensorRT-LLM `1.3.0rc20`, VisualGen, NIXL и UCX; `scripts/00_ubuntu_check.py` и `scripts/01_runtime_smoke.py` возвращают `pass`.
+- ModelOpt 0.45.0, Transformers 5.9.0 и Torch cu132 проверены отдельным `scripts/02_modelopt_smoke.py`.
+- Root LVM расширен с 100 GiB до 936 GiB; модельный preflight и выборочная загрузка assets доступны через `scripts/03_model_readiness.py` и `scripts/04_download_models.py`.
 
 ## Спринт 003 — Перенос CPU-only валидаций
 

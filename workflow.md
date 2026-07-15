@@ -4,14 +4,14 @@
 
 ## 0. Фактическая стартовая точка
 
-Рабочая машина — Ubuntu 26.04 на `192.168.0.206`, GPU NVIDIA GeForce RTX 5060 Ti (Blackwell, CC 12.0), 16 GiB VRAM, driver 595.71.05, CUDA runtime 13.2. Это подходящая архитектура для NVFP4, но пока не готовая runtime-среда: Python 3.13, CUDA Toolkit (`nvcc`), PyTorch, TensorRT и TensorRT-LLM отсутствуют.
+Рабочая машина — Ubuntu 26.04 на `192.168.0.206`, GPU NVIDIA GeForce RTX 5060 Ti (Blackwell, CC 12.0), 16 GiB VRAM, driver 595.71.05, CUDA Toolkit 13.2.78 и 60 GiB RAM. Root LVM расширен до 936 GiB, свободно около 811 GiB. Native TensorRT-LLM runtime успешно установлен и проверен.
 
 Каждый GPU-спринт начинается с нового снимка:
 
 ```bash
 nvidia-smi
 nvcc --version
-python3.13 --version
+python3.14 --version
 ```
 
 В отчёт пишутся версии GPU/driver/CUDA/Python и свободная VRAM. SSH-пароли, Hugging Face tokens и другие секреты в отчёт не включаются.
@@ -55,34 +55,20 @@ models/apacheone/flux2-klein-9b-kv-nvfp4_txtattnBF16.safetensors
 
 ## 3. Native framework и compatibility gate
 
-Используется только native Ubuntu; Docker запрещён. Целевой runtime — Python 3.13 venv, PyTorch cu132, TensorRT и TensorRT-LLM.
+Используется только native Ubuntu; Docker запрещён. Целевой TensorRT-LLM runtime — Python 3.14 `.venv`, PyTorch cu132, TensorRT и source-build TensorRT-LLM `1.3.0rc20`. NVIDIA ModelOpt/Hugging Face CLI находятся в отдельном Python 3.14 `.venv-modelopt`.
 
 ```bash
-# После установки Python 3.13 и CUDA Toolkit 13.2 по официальной документации NVIDIA
-python3.13 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132
-python -m pip install --upgrade tensorrt-cu13
+# TensorRT-LLM runtime
+source scripts/activate_remote.sh
+python scripts/00_ubuntu_check.py --strict
+python scripts/01_runtime_smoke.py --strict
+
+# Отдельно: NVIDIA ModelOpt и Hugging Face CLI
+source scripts/activate_modelopt_remote.sh
+python scripts/02_modelopt_smoke.py
 ```
 
-TensorRT Python wheels поддерживают Linux x86-64, CUDA 13.x и Python 3.13; для development нужен полный runtime, а не lean/dispatch runtime. См. [NVIDIA TensorRT prerequisites](https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/prerequisites.html) и [pip installation](https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/install-pip.html).
-
-Перед TensorRT-LLM зафиксировать PyTorch, чтобы pip не заменил cu132:
-
-```bash
-python - <<'PY'
-import torch
-print(torch.__version__, torch.version.cuda, torch.cuda.is_available())
-assert torch.version.cuda == "13.2"
-assert torch.cuda.is_available()
-PY
-CURRENT_TORCH_VERSION=$(python -c 'import torch; print(torch.__version__)')
-printf 'torch==%s\n' "$CURRENT_TORCH_VERSION" > /tmp/flux2-torch-constraint.txt
-python -m pip install tensorrt_llm -c /tmp/flux2-torch-constraint.txt
-```
-
-Официальный TensorRT-LLM pip-guide на момент написания тестирует pre-built wheel с CUDA 13.1/PyTorch cu130 и Python 3.12, поэтому данный проект **не предполагает** его совместимость с cu132. Если resolver требует заменить PyTorch, или import/smoke-test не проходит, остановиться с категорией `environment compatibility`; не понижать CUDA, не переключаться на Docker и не менять модель. Сборка из исходников именно под CUDA 13.2 возможна лишь отдельным спринтом после сохранения диагностики. [Официальная инструкция TensorRT-LLM](https://nvidia.github.io/TensorRT-LLM/installation/linux.html).
+Не запускайте `pip install -U` в `.venv`: pre-built metadata TensorRT-LLM несовместима с зафиксированным Torch и может попытаться изменить рабочий стек. Полная воспроизводимая процедура source-build приведена в [INSTALLATION.md](INSTALLATION.md).
 
 Проверка runtime:
 

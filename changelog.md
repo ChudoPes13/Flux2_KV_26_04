@@ -24,3 +24,10 @@
 - Добавлены `scripts/activate_remote.sh` и `scripts/00_ubuntu_check.py` для активации Python-3.12 venv и сохранения native environment report.
 - Resolver TensorRT-LLM 1.2.1 проверен с constraints `torch==2.13.0+cu132`, `torchvision==0.28.0+cu132` и `cuda-python==13.2.0`. Он остановился на жёстком конфликте: TensorRT-LLM требует `torch >=2.9.1, <=2.10.0a0`.
 - TensorRT-LLM/VisualGen, Hugging Face login и загрузка моделей намеренно не выполнялись. Спринт остаётся `blocked` до решения о совместимом официальном wheel либо отдельном одобренном source-build.
+
+## 2026-07-15 — Спринт 002: native runtime, ModelOpt и model readiness
+
+- Native source-build TensorRT-LLM `1.3.0rc20` успешно запущен с Python 3.14.4, CUDA Toolkit 13.2.78, `torch 2.13.0+cu132`, TensorRT 11, VisualGen, NIXL и UCX; environment/runtime smoke tests возвращают `pass`.
+- Зафиксировано разделение окружений: `.venv` служит только TensorRT-LLM runtime, `.venv-modelopt` — NVIDIA ModelOpt, совместимому Transformers и Hugging Face CLI. Оба используют Python 3.14.
+- Добавлены ModelOpt smoke-test, model readiness/download scripts и no-copy VisualGen runtime layout checks.
+- Root LVM на NVMe расширен online с 100 GiB до 936 GiB, поэтому выборочная загрузка ApacheOne checkpoints, BFL companion assets и 4-bit text encoder имеет достаточный запас места.

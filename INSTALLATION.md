@@ -139,6 +139,22 @@ find ~/src/TensorRT-LLM-1.3.0rc20/build -name 'tensorrt_llm-*.whl' -print0 \
 python -m pip list --format=freeze | grep -E '^(cuda-python|cuda-bindings|cuda-toolkit)='
 ```
 
+## 7. Изолированное окружение NVIDIA ModelOpt
+
+NVIDIA ModelOpt установлен отдельно в `~/Flux2_KV_26_04/.venv-modelopt`. В нём сохранён обязательный PyTorch cu132 и выбран совместимый с ModelOpt набор Hugging Face пакетов: `nvidia-modelopt==0.45.0` и `transformers==5.9.0`.
+
+```bash
+cd ~/Flux2_KV_26_04
+python3.14 -m venv .venv-modelopt
+source .venv-modelopt/bin/activate
+python -m pip install --upgrade pip
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132
+python -m pip install 'nvidia-modelopt[hf]'
+python scripts/02_modelopt_smoke.py
+```
+
+Активируйте его только через `source scripts/activate_modelopt_remote.sh`. Основной `.venv` оставлен для TensorRT-LLM. В нём пока остаётся compatibility-зависимость `nvidia-modelopt`, потому что текущая сборка RC20 импортирует ModelOpt при обычном импорте `tensorrt_llm`; удаление её из основного окружения потребует отдельного изменения import graph и полной повторной проверки TensorRT-LLM.
+
 ## Ограничения
 
 - Это рабочая compatibility-сборка, а не официально поддерживаемая NVIDIA комбинация RC20 + TensorRT 11 + Torch 2.13.
