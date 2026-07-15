@@ -1,38 +1,67 @@
 project:
-  name: flux2-kv
+  name: flux2-kv-vllm
   os: ubuntu
   native_runtime: true
+  backend: vllm
 
 platform:
   ubuntu_version: "26.04"
   cuda_version: "13.2"
   python_version: "3.14"
-  minimum_gpu_architecture: blackwell
+  gpu_architecture: blackwell
+  gpu_model: "NVIDIA GeForce RTX 5090"
+  vram_gib: 32
 
 models:
-  base_repo: black-forest-labs/FLUX.2-klein-9b-kv
-  apacheone_repo: ApacheOne/FLUX.2-klein-9b-kv-nvfp4_mixed
-  apacheone_dir: models/apacheone
-  bfl_dir: models/bfl
+  primary_repo: black-forest-labs/FLUX.2-klein-9b-kv
+  local_dir: models/bfl
+  # NVFP4 quantized artifact produced by 06_quantize_nvfp4.py.
+  # Path is filled in after Sprint 004; until then the BF16 path below is canonical.
+  nvfp4_dir: models/bfl_nvfp4
   experimental_dir: models/experimental
-
-checkpoints:
-  full: models/apacheone/flux2-klein-9b-kv-nvfp4.safetensors
-  txtattn_bf16: models/apacheone/flux2-klein-9b-kv-nvfp4_txtattnBF16.safetensors
 
 generation:
   width: 1024
   height: 1024
-  logo_width: 512
-  logo_height: 512
   steps: 4
   seed: 42
   batch_size: 1
   guidance_scale: 4.0
 
+vllm:
+  # vLLM image-generation entrypoint. The FLUX.2 family is dispatched by vLLM's
+  # `flux` / `flux2` model loader; the exact arch string is finalised in Sprint 002.
+  model_type: image
+  dtype: bfloat16
+  enforce_eager: false
+  # Single-GPU 32 GiB Blackwell — no tensor parallelism, no pipeline parallelism.
+  tensor_parallel_size: 1
+  pipeline_parallel_size: 1
+  gpu_memory_utilization: 0.90
+  max_model_len: null
+  # kv_cache_dtype left default unless a Sprint explicitly tests a quantised KV cache.
+  kv_cache_dtype: null
+
+quantization:
+  scheme: nvfp4
+  # Which layers get NVFP4 weights is decided in Sprint 004 with a documented
+  # allowlist; VAE, tokenizer, final layer-norm and small embeddings stay BF16.
+  target_modules: null
+  calibration_prompts_file: data/input/calibration_prompts.txt
+  ignore_modules: ["vae", "tokenizer", "t5", "final_layer"]
+  quant_dtype: nvfp4
+  # If true, ModelOpt emits a compressed-tensors checkpoint vLLM can load directly.
+  emit_compressed_tensors: true
+
 runtime:
-  prefer_tensorrt: true
-  prefer_visualgen: true
   allow_docker: false
   allow_diffusers_fallback: false
   allow_prompt_text_in_generation: false
+  allow_cpu_fallback: false
+  prefer_offline_engine: true
+
+diagnostics:
+  report_dir: data/diagnostics
+  baseline_run: bf16_baseline.json
+  quantized_run: nvfp4_run.json
+  comparison_report: comparison_bf16_vs_nvfp4.json

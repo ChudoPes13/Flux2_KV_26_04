@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a native Ubuntu/CUDA compatibility report without Docker checks."""
+"""Write a native Ubuntu/CUDA/vLLM compatibility report without Docker checks."""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ def main() -> int:
 
     operating_system = os_release()
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": datetime.now(UTC).isoformat(),
         "platform": {"system": sys.platform, "machine": platform.machine()},
         "os_release": operating_system,
@@ -115,6 +115,7 @@ def main() -> int:
         "cuda_toolkit": cuda_toolkit(),
         "gpu": nvidia_gpu(),
         "library_path": os.environ.get("LD_LIBRARY_PATH", ""),
+        "vllm_attention_backend": os.environ.get("VLLM_ATTENTION_BACKEND"),
     }
 
     torch_info, torch = optional_module("torch")
@@ -125,20 +126,33 @@ def main() -> int:
             torch_info["device_name"] = torch.cuda.get_device_name(0)
             torch_info["capability"] = list(torch.cuda.get_device_capability(0))
     report["pytorch"] = torch_info
-    report["tensorrt"], _ = optional_module("tensorrt")
-    report["tensorrt_llm"], _ = optional_module("tensorrt_llm")
+    report["vllm"], vllm = optional_module("vllm")
+    report["compressed_tensors"], _ = optional_module("compressed_tensors")
+
+    # FLUX.2 model class registry probe — only if vLLM import succeeded.
+    flux_archs: list[str] = []
+    if vllm is not None:
+        try:
+            from vllm.model_executor.models.registry import ModelRegistry
+
+            flux_archs = [a for a in ModelRegistry.get_supported_archs() if "flux" in a.lower()]
+        except Exception as exc:  # noqa: BLE001
+            report["vllm"]["registry_error"] = f"{type(exc).__name__}: {exc}"
+    report["vllm"]["flux_archs"] = flux_archs
 
     capability = torch_info.get("capability", [])
     checks = {
-        "ubuntu_26_04": operating_system.get("ID") == "ubuntu" and operating_system.get("VERSION_ID") == "26.04",
+        "ubuntu_26_04": operating_system.get("ID") == "ubuntu"
+        and operating_system.get("VERSION_ID") == "26.04",
         "python_3_14": sys.version_info[:2] == (3, 14),
         "cuda_toolkit_13_2": report["cuda_toolkit"]["release"] == "13.2",
         "pytorch_cu132": torch_info.get("version", "").endswith("+cu132")
         and torch_info.get("cuda") == "13.2",
         "pytorch_cuda_available": torch_info.get("cuda_available") is True,
         "blackwell_or_newer": bool(capability) and capability[0] >= 10,
-        "tensorrt_import": report["tensorrt"].get("installed") is True,
-        "tensorrt_llm_import": report["tensorrt_llm"].get("installed") is True,
+        "vllm_import": report["vllm"].get("installed") is True,
+        "compressed_tensors_import": report["compressed_tensors"].get("installed") is True,
+        "flux_arch_registered": len(flux_archs) > 0,
     }
     report["checks"] = checks
     report["status"] = "pass" if all(checks.values()) else "blocked"

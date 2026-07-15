@@ -31,3 +31,14 @@
 - Зафиксировано разделение окружений: `.venv` служит только TensorRT-LLM runtime, `.venv-modelopt` — NVIDIA ModelOpt, совместимому Transformers и Hugging Face CLI. Оба используют Python 3.14.
 - Добавлены ModelOpt smoke-test, model readiness/download scripts и no-copy VisualGen runtime layout checks.
 - Root LVM на NVMe расширен online с 100 GiB до 936 GiB, поэтому выборочная загрузка ApacheOne checkpoints, BFL companion assets и 4-bit text encoder имеет достаточный запас места.
+
+## 2026-07-15 — Sprint 100: rewrite stub под vLLM vision backend
+
+- Проект портирован с TensorRT-LLM VisualGen на **vLLM image-generation backend**; целевая машина изменена с RTX 5060 Ti (16 GiB) на **RTX 5090 (32 GiB VRAM, Blackwell, SM 12.0)**.
+- Все MD-документы (`README.md`, `architecture.md`, `agents.md`, `rules.md`, `workflow.md`, `run.md`, `INSTALLATION.md`, `plan.md`) переписаны под vLLM + RTX 5090 + NVFP4 цель. Исторические записи оставлены без изменений для контекста.
+- `configs/project.yaml` приведён к новой модели: `backend: vllm`, `gpu_model: RTX 5090`, `vram_gib: 32`, секции `vllm` и `quantization` с явно заданным `ignore_modules: [vae, tokenizer, t5, final_layer]`.
+- `pyproject.toml` переименован в `flux2-kv-vllm`, добавлены `scikit-image` (PSNR/SSIM), `compressed-tensors`, `accelerate` в `modelopt` extras.
+- Удалены VisualGen-специфичные скрипты `05_prepare_runtime_layout.py` и `06_check_visualgen_layout.py`. Добавлены заглушки `05_bf16_baseline.py`, `06_quantize_nvfp4.py`, `07_quantized_run.py`, `08_compare_results.py`.
+- `scripts/01_runtime_smoke.py` переименован в `01_vllm_smoke.py`; `00_ubuntu_check.py` обновлён (импорт vLLM вместо TensorRT-LLM). `activate_remote.sh` упрощён: UCX/NIXL/TRT-LLM lib paths удалены, оставлены только CUDA, PyTorch, vLLM.
+- Нумерация спринтов перезапущена с 100 в `plan.md`, чтобы избежать коллизий с историческими спринтами 000–007 TensorRT-LLM era.
+- Не включает установку vLLM, загрузку модели или генерацию — это Sprint 101–106.

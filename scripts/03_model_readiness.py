@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Check Hugging Face access, model download size, disk, and GPU capacity.
+"""Check Hugging Face access, BFL model download size, disk, and GPU capacity.
 
 The check is read-only: it never downloads model files or writes an access token.
+
+Target: black-forest-labs/FLUX.2-klein-9b-kv on RTX 5090 (32 GiB VRAM).
+No ApacheOne, no third-party text encoder — NVFP4 checkpoint is produced by this
+project itself via ModelOpt in Sprint 004.
 """
 
 from __future__ import annotations
@@ -19,9 +23,7 @@ OFFICIAL_BFL_MINIMUM_VRAM_GIB = 29
 WORKING_HEADROOM_GIB = 15
 DOWNLOAD_OVERHEAD = 1.15
 MODEL_REPOSITORIES = {
-    "apacheone_transformer": "ApacheOne/FLUX.2-klein-9b-kv-nvfp4_mixed",
-    "bfl_companion": "black-forest-labs/FLUX.2-klein-9b-kv",
-    "text_encoder": "aifeifei798/FLUX.2-klein-9B-text_encoder-4bit",
+    "bfl_primary": "black-forest-labs/FLUX.2-klein-9b-kv",
 }
 
 
@@ -31,7 +33,6 @@ def bytes_to_gib(value: int) -> float:
 
 def sibling_size(sibling: Any) -> int:
     """Return a file's Hub-reported size across current hub client versions."""
-
     direct_size = getattr(sibling, "size", None)
     if isinstance(direct_size, int):
         return direct_size
@@ -74,6 +75,7 @@ def gpu_snapshot() -> dict[str, object]:
         return {
             "available": True,
             "name": torch.cuda.get_device_name(0),
+            "capability": list(torch.cuda.get_device_capability(0)),
             "free_gib": bytes_to_gib(free_bytes),
             "total_gib": bytes_to_gib(total_bytes),
             "official_bfl_minimum_gib": OFFICIAL_BFL_MINIMUM_VRAM_GIB,
@@ -103,18 +105,23 @@ def main() -> int:
     if gpu.get("available") and not gpu.get("meets_official_bfl_requirement"):
         warnings.append(
             "The official BFL model documents approximately 29 GiB VRAM; this GPU does not meet "
-            "that published requirement. ApacheOne NVFP4 must be treated as an unverified, separate "
-            "load-only diagnostic."
+            "that published requirement. BF16 baseline may OOM; consider switching to a 32 GiB "
+            "Blackwell GPU (RTX 5090) before proceeding."
+        )
+    if gpu.get("available") and gpu.get("capability") and gpu["capability"][0] < 10:
+        warnings.append(
+            "This GPU is not Blackwell-class (SM < 10.0). NVFP4 acceptance requires Blackwell."
         )
 
     checks = {
         "huggingface_authenticated_and_accessible": authenticated,
-        "model_metadata_available": authenticated and len(repositories) == len(MODEL_REPOSITORIES),
+        "model_metadata_available": authenticated
+        and len(repositories) == len(MODEL_REPOSITORIES),
         "storage_ready": storage_ready,
         "gpu_available": bool(gpu.get("available")),
     }
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": datetime.now(UTC).isoformat(),
         "model_root": str(model_root),
         "repositories": repositories,

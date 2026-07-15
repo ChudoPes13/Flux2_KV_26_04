@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Download only the FLUX.2 Klein-KV assets used by this native project.
+"""Download the BFL FLUX.2-klein-9b-kv assets used by this native project.
 
-The BFL repository contains full BF16 transformer and text-encoder weights that
-are deliberately excluded: ApacheOne supplies the transformer and the separate
-4-bit repository supplies the text encoder.
+No ApacheOne, no third-party text encoder — the project produces its own NVFP4
+checkpoint via ModelOpt in Sprint 004.
 """
 
 from __future__ import annotations
@@ -14,28 +13,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 COMPONENTS = {
-    "apacheone": {
-        "repo_id": "ApacheOne/FLUX.2-klein-9b-kv-nvfp4_mixed",
-        "destination": Path("apacheone"),
-        "allow_patterns": [
-            "flux2-klein-9b-kv-nvfp4.safetensors",
-            "flux2-klein-9b-kv-nvfp4_txtattnBF16.safetensors",
-        ],
-    },
-    "bfl_companion": {
+    "bfl_primary": {
         "repo_id": "black-forest-labs/FLUX.2-klein-9b-kv",
         "destination": Path("bfl"),
-        "allow_patterns": [
-            "model_index.json",
-            "scheduler/*",
-            "tokenizer/*",
-            "transformer/config.json",
-            "vae/*",
-        ],
-    },
-    "text_encoder_4bit": {
-        "repo_id": "aifeifei798/FLUX.2-klein-9B-text_encoder-4bit",
-        "destination": Path("experimental/text_encoder/aifeifei_4bit"),
+        # Download everything: transformer, text_encoder (T5 + CLIP), VAE,
+        # tokenizer, scheduler, model_index. Selective allow_patterns can be
+        # tightened later if disk pressure appears.
         "allow_patterns": ["*"],
     },
 }
@@ -57,7 +40,7 @@ def main() -> int:
 
     selected = COMPONENTS if args.component == "all" else {args.component: COMPONENTS[args.component]}
     report: dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": datetime.now(UTC).isoformat(),
         "models_root": str(args.models_root.resolve()),
         "dry_run": args.dry_run,

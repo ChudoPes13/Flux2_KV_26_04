@@ -3,18 +3,29 @@ requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "flux2-kv"
+name = "flux2-kv-vllm"
 version = "0.1.0"
-description = "Native Ubuntu diagnostics and inference path for FLUX.2 Klein-KV NVFP4"
+description = "Native Ubuntu inference and NVFP4 quantization path for FLUX.2 Klein-KV via vLLM image generation"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
   "Pillow>=11.0",
   "PyYAML>=6.0",
   "safetensors>=0.5",
+  "huggingface_hub>=0.30",
+  "numpy>=2.0",
+  "scikit-image>=0.24",   # PSNR/SSIM for BF16 vs NVFP4 comparison
 ]
 
 [project.optional-dependencies]
+# vLLM runtime installs separately from source on Python 3.14 + CUDA 13.2 —
+# see INSTALLATION.md. The pinned constraints below are for ModelOpt venv only.
+modelopt = [
+  "nvidia-modelopt[hf]==0.45.0",
+  "transformers==5.9.0",
+  "compressed-tensors>=0.9",
+  "accelerate>=1.0",
+]
 dev = [
   "pytest>=8.3",
   "ruff>=0.9",
