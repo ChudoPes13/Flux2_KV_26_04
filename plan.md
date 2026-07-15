@@ -18,11 +18,11 @@
 
 ## Спринт 002 — Native Ubuntu environment gate
 
-- Статус: `planned`
-- Добавить `scripts/00_ubuntu_check.py` и модуль диагностики native среды.
-- Проверять `/etc/os-release`, NVIDIA driver, CUDA 13.2 runtime, Python 3.13, PyTorch cu132, TensorRT, TensorRT-LLM, GPU capability, VRAM и библиотечные пути.
-- Сформировать машиночитаемый JSON-отчёт; Docker-проверки не добавлять.
-- Acceptance: отчёт чётко определяет, пригодна ли машина для NVFP4 Blackwell-проверки, и объясняет причину отказа.
+- Статус: `blocked`
+- Добавлен `scripts/00_ubuntu_check.py`: он проверяет `/etc/os-release`, NVIDIA driver, CUDA Toolkit 13.2, Python 3.12, PyTorch cu132, TensorRT, TensorRT-LLM, GPU capability, VRAM и библиотечные пути; создаёт машиночитаемый JSON без Docker-проверок.
+- Подтверждены Python 3.12.13, CUDA Toolkit 13.2.78, PyTorch 2.13.0+cu132 с доступной RTX 5060 Ti и TensorRT 11.1.0.106.
+- Blocker: TensorRT-LLM 1.2.1 pre-built wheel для Python 3.12 требует `torch >=2.9.1, <=2.10.0a0`; это конфликтует с обязательным PyTorch cu132 версии 2.13.0. Constraint `cuda-python==13.2.0` не снимает torch-конфликт; CUDA 13.3, понижение PyTorch и source-build не разрешены.
+- Acceptance: отчёт правильно возвращает `blocked` и объясняет incompatibility; TensorRT-LLM VisualGen, Hugging Face login и модели не запускаются до внешнего решения.
 
 ## Спринт 003 — Перенос CPU-only валидаций
 

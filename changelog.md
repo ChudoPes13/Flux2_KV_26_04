@@ -16,3 +16,11 @@
 - Добавлен `workflow.md` с GPU-first процессом: input, выбор моделей и framework, native environment gate, NVFP4 политика, обработка, диагностические развилки и output.
 - Зафиксированы текущие blockers окружения: отсутствуют Python 3.13, CUDA Toolkit/`nvcc`, PyTorch, TensorRT и TensorRT-LLM; системный Python 3.14.4 не используется для проекта.
 - Уточнено правило: `full` ApacheOne NVFP4 — первичный вариант; `txtattn_bf16` не является silent fallback.
+
+## 2026-07-15 — Спринт 002: native environment gate (blocked)
+
+- Установлены user-local CPython 3.12.13 и новый project venv; прежний Python-3.13 venv сохранён на удалённой машине как локальный резервный каталог и не добавлялся в Git.
+- Установлены и проверены CUDA Toolkit 13.2.78, PyTorch 2.13.0+cu132, TensorRT 11.1.0.106; PyTorch видит RTX 5060 Ti (CC 12.0). CUDA 13.3 не устанавливалась.
+- Добавлены `scripts/activate_remote.sh` и `scripts/00_ubuntu_check.py` для активации Python-3.12 venv и сохранения native environment report.
+- Resolver TensorRT-LLM 1.2.1 проверен с constraints `torch==2.13.0+cu132`, `torchvision==0.28.0+cu132` и `cuda-python==13.2.0`. Он остановился на жёстком конфликте: TensorRT-LLM требует `torch >=2.9.1, <=2.10.0a0`.
+- TensorRT-LLM/VisualGen, Hugging Face login и загрузка моделей намеренно не выполнялись. Спринт остаётся `blocked` до решения о совместимом официальном wheel либо отдельном одобренном source-build.
