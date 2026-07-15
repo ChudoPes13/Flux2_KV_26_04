@@ -16,6 +16,8 @@ Native Linux-проект для диагностического запуска
 - [Архитектура и окружение](architecture.md)
 - [Полный GPU-first процесс](workflow.md)
 - [Правила разработки и GitHub-процесс](rules.md)
+- [Воспроизводимая установка рабочей конфигурации](INSTALLATION.md)
+- [Запуск и проверки](run.md)
 
 ## Структура
 
@@ -31,27 +33,26 @@ models/         Локальные веса моделей (не в Git)
 
 ## Быстрый старт окружения
 
-На целевой Ubuntu-системе с CUDA 13.2:
+На целевой Ubuntu-системе с CUDA Toolkit 13.2 и Python 3.14:
 
 ```bash
-python3.13 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132
-python -m pip install -e '.[dev]'
+source scripts/activate_remote.sh
+python scripts/00_ubuntu_check.py --output data/diagnostics/ubuntu_env_check.json
 ```
 
-Установка TensorRT и TensorRT-LLM выполняется отдельно по актуальной официальной инструкции NVIDIA, совместимой с фактическими драйвером, CUDA 13.2 и Blackwell GPU. Подробные требования и проверки — в [architecture.md](architecture.md).
+`activate_remote.sh` ожидает созданный Python-3.14 venv. В нём PyTorch всегда ставится только командой `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132`; CUDA 13.3 не используется. Подробные требования и проверки — в [INSTALLATION.md](INSTALLATION.md) и [run.md](run.md).
 
 ## Рабочая машина
 
-Все GPU-задачи выполняются на удалённой Ubuntu-машине `192.168.0.206` под пользователем `master`. На момент первичной диагностики это Ubuntu 26.04 LTS с NVIDIA GeForce RTX 5060 Ti (Blackwell, compute capability 12.0), 16 GiB VRAM, драйвером 595.71.05 и CUDA runtime 13.2. Секреты доступа, токены и приватные пути в репозиторий не записываются.
+Все GPU-задачи выполняются на удалённой Ubuntu-машине `192.168.0.206` под пользователем `master`. На момент environment gate это Ubuntu 26.04 LTS с NVIDIA GeForce RTX 5060 Ti (Blackwell, compute capability 12.0), 16 GiB VRAM, драйвером 595.71.05 и CUDA runtime/toolkit 13.2. Секреты доступа, токены и приватные пути в репозиторий не записываются.
 
 Полная последовательность от входных файлов до диагностического отчёта описана в [workflow.md](workflow.md). Под «всё на GPU» проект понимает весь ML inference и обработку тензоров; файловый ввод-вывод, парсинг конфигурации и проверка метаданных остаются на CPU, так как не являются GPU-вычислениями.
 
 ## Важные ограничения
 
 - Docker не используется.
+- Нативный Python проекта — 3.14; CUDA Toolkit 13.2 — единственная разрешённая ветка CUDA.
+- На 2026-07-15 нативная compatibility-сборка TensorRT-LLM `1.3.0rc20` успешно проходит environment и VisualGen smoke-тесты с обязательным `torch 2.13.0+cu132`, NIXL и UCX. Сборка не является официально поддерживаемой NVIDIA комбинацией; детали патчей и ограничения приведены в [INSTALLATION.md](INSTALLATION.md).
 - `cached_embeddings_strict` никогда не подменяется prompt-текстом или Diffusers.
 - Результат на GPU до Blackwell не является NVFP4 acceptance.
 - Каждый этап выполняется в отдельной ветке через PR в `main`.

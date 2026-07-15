@@ -11,7 +11,7 @@
 | ОС | Ubuntu 26.04 LTS, native runtime |
 | GPU | NVIDIA Blackwell / GeForce RTX 50XX или новее |
 | CUDA | 13.2 |
-| Python | 3.13 |
+| Python | 3.12 |
 | PyTorch | CUDA 13.2 wheels |
 | Inference runtime | TensorRT + TensorRT-LLM, нативно установленный и совместимый с GPU/драйвером |
 | Контейнеры | Не используются |
@@ -22,7 +22,7 @@
 pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu132
 ```
 
-TensorRT и TensorRT-LLM не фиксируются произвольными версиями: они должны устанавливаться по актуальной официальной инструкции NVIDIA именно для CUDA 13.2, версии драйвера и Blackwell. Любой environment gate фиксирует реальные версии и пути библиотек.
+TensorRT и TensorRT-LLM не фиксируются произвольными версиями: они должны устанавливаться по актуальной официальной инструкции NVIDIA именно для CUDA 13.2, версии драйвера и Blackwell. Любой environment gate фиксирует реальные версии и пути библиотек. CUDA 13.3 не является допустимой заменой CUDA 13.2.
 
 ## Подтверждённая удалённая машина
 
@@ -35,7 +35,11 @@ TensorRT и TensorRT-LLM не фиксируются произвольными 
 | VRAM | 16 311 MiB, свободно 15 814 MiB на момент проверки |
 | Driver / CUDA runtime | 595.71.05 / 13.2 |
 | RAM / свободный диск `$HOME` | 60 GiB / 75 GiB |
-| Текущее ПО | Python 3.14.4; отсутствуют Python 3.13, `nvcc`, PyTorch, TensorRT и TensorRT-LLM |
+| Project Python | 3.12.13, user-local installation; `.venv` использует этот interpreter |
+| CUDA Toolkit | 13.2.78 (`/usr/local/cuda-13.2`, `nvcc` доступен) |
+| PyTorch | 2.13.0+cu132, `torch.version.cuda == 13.2`, GPU available |
+| TensorRT | 11.1.0.106, Python import проходит |
+| TensorRT-LLM / VisualGen | Не установлены: официальный pre-built wheel 1.2.1 конфликтует с обязательным PyTorch |
 
 GPU подходит для NVFP4 acceptance по архитектуре. Однако наличие CUDA runtime в `nvidia-smi` не заменяет CUDA Toolkit: для native TensorRT-LLM нужен отдельный проверяемый путь установки с `nvcc`, `CUDA_HOME` и совместимыми библиотеками. Не считать машину готовой до успешного environment gate.
 
@@ -47,7 +51,9 @@ GPU подходит для NVFP4 acceptance по архитектуре. Одн
 
 ## Совместимость native TensorRT-LLM
 
-Проект закрепляет PyTorch cu132, но не предполагает, что любой текущий TensorRT-LLM wheel совместим с ним. Официальный pip-гайд TensorRT-LLM на дату проверки указывает tested путь CUDA 13.1/PyTorch cu130 и Python 3.12, поэтому до установки фиксируются resolver output и импортный smoke-test. Если wheel пытается заменить PyTorch cu132 или импорт не проходит, это `environment compatibility` blocker: не понижать CUDA/PyTorch и не использовать Docker; решение о сборке TensorRT-LLM из исходников для cu132 принимается отдельным спринтом.
+Python 3.12 выбран специально потому, что pre-built TensorRT-LLM wheel имеет вариант `cp312`. Однако этого недостаточно: resolver TensorRT-LLM 1.2.1 на 2026-07-15 зафиксировал зависимость `torch >=2.9.1, <=2.10.0a0`. Она не допускает обязательный `torch 2.13.0+cu132`. Кроме того, без constraint зависимость `cuda-python>=13` выбирает 13.3.1, что запрещено данным проектом; совместимый constraint `cuda-python==13.2.0` существует, но не устраняет torch-конфликт.
+
+Это `environment compatibility` blocker. Не понижать CUDA/PyTorch, не ставить CUDA 13.3, не использовать Docker и не загружать модели до снятия blocker. NVIDIA в актуальном pip-гайде также указывает pre-built путь с PyTorch 2.10.0 и CUDA 13.0, а не cu132. Разрешённые дальнейшие решения требуют отдельного одобрения: официальный wheel с поддержкой PyTorch cu132 либо отдельный source-build TensorRT-LLM под зафиксированный стек.
 
 Детальная процедура приведена в [workflow.md](workflow.md).
 
